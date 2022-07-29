@@ -1,112 +1,159 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 
 public class Main : MonoBehaviour
 {
-    int xCount = 16;
-    int yCount = 16;
-    int bombCount;
-    int heathsCount;
-    int[,] values;
-    int[,] valuesSave;
+    private int _healthCount = Menu.NumberOfAttempts;
 
-    [SerializeField] private GameObject[] cellPrefab;
-    [SerializeField] private GameObject[] heaths;
-    [SerializeField] private GameObject gameBoard;
-    [SerializeField] private GameObject numberOfBombs;
-    
-    private GameObject[,] openedÑellPrefab;
-    private GameObject[,] closedCellPrefab;
+    private Difficulty difficulty = Menu.Difficulty;
 
-    [SerializeField] private Sprite proxiMinesSprite;
-    [SerializeField] private Sprite closedCellSignSprite;
-    [SerializeField] private Sprite closedCellSprite;
+    private int _numberOfCellsInWidth;
+    private int _numberOfCellsInHeight;
+    private int _bombCount;
+    private int _maxHealth;
+    private int[,] _values;
+    private int[,] _valuesSave;
+    private int _resultOfTheGame;
+    private int _goodCellsCount;
 
-    [SerializeField] private AudioClip mineExplosionClip;
-    [SerializeField] private AudioSource allAudio;
+    private float _delayEndGame = 3;
+
+    private bool _timerEnable;
+
+
+
+    [SerializeField] private GameObject[] _cellPrefabs;
+    [SerializeField] private List<GameObject> _health;
+    [SerializeField] private GameObject _gameBoard;
+    [SerializeField] private GameObject _numberOfBombsText;
+    [SerializeField] private GameObject _heartsPrefab;
+    [SerializeField] private GameObject _endGamePanel;
+
+    private GameObject[,] _openedÑellPrefab;
+    private GameObject[,] _closedCellPrefab;
+
+    [SerializeField] private Sprite _proxiMinesSprite;
+    [SerializeField] private Sprite _closedCellSignSprite;
+    [SerializeField] private Sprite _closedCellSprite;
+
+    [SerializeField] private Text _endGameResultText;
+
+    [SerializeField] private AudioClip _mineExplosion;
+    [SerializeField] private AudioSource _allAudio;
 
     private void Start()
     {
-        bombCount = (xCount * yCount) / 10;
-        int k = bombCount;
-        heathsCount = 3;
-
-        NumberOfBombs(bombCount);
-
-        openedÑellPrefab = new GameObject[xCount, yCount];
-        closedCellPrefab = new GameObject[xCount, yCount];
-
-        values = new int[xCount, yCount];
-        valuesSave = new int[xCount, yCount];
-
-        for (int i = 0; i < xCount; i++)
+        if (difficulty == Difficulty.Easy)
         {
-            for (int j = 0; j < yCount; j++)
+            _numberOfCellsInWidth = 16;
+            _numberOfCellsInHeight = 16;
+        }
+        else if (difficulty == Difficulty.Normal)
+        {
+            _numberOfCellsInWidth = 32;
+            _numberOfCellsInHeight = 16;
+        }
+        else if (difficulty == Difficulty.Hard)
+        {
+            _numberOfCellsInWidth = 32;
+            _numberOfCellsInHeight = 32;
+        }
+
+        _bombCount = (_numberOfCellsInWidth * _numberOfCellsInHeight) / 10;
+        int k = _bombCount;
+        _maxHealth = _healthCount;
+        NumberOfBombs(_bombCount);
+        _openedÑellPrefab = new GameObject[_numberOfCellsInWidth, _numberOfCellsInHeight];
+        _closedCellPrefab = new GameObject[_numberOfCellsInWidth, _numberOfCellsInHeight];
+
+        _values = new int[_numberOfCellsInWidth, _numberOfCellsInHeight];
+        _valuesSave = new int[_numberOfCellsInWidth, _numberOfCellsInHeight];
+
+
+        if (_maxHealth < _health.Count)
+        {
+            _health.RemoveRange(0, _health.Count - _maxHealth);
+
+        }
+        for (int i = 0; i < _health.Count; i++)
+        {
+            _health[i].SetActive(true);
+        }
+
+
+        for (int i = 0; i < _numberOfCellsInWidth; i++)
+        {
+            for (int j = 0; j < _numberOfCellsInHeight; j++)
             {
-                values[i, j] = 0;
+                _values[i, j] = 0;
             }
         }
+
+
         while (k > 0)
         {
-            int i = Random.Range(0, xCount);
-            int j = Random.Range(0, yCount);
-            if (values[i, j] >= 0)
+            int i = Random.Range(0, _numberOfCellsInWidth);
+            int j = Random.Range(0, _numberOfCellsInHeight);
+            if (_values[i, j] >= 0)
             {
-                values[i, j] = -10;
-                if (i > 0) values[i - 1, j]++;
-                if (j > 0) values[i, j - 1]++;
-                if (i < xCount - 1) values[i + 1, j]++;
-                if (j < yCount - 1) values[i, j + 1]++;
-                if ((i > 0) && (j > 0)) values[i - 1, j - 1]++;
-                if ((i > 0) && (j < yCount - 1)) values[i - 1, j + 1]++;
-                if ((i < xCount - 1) && (j > 0)) values[i + 1, j - 1]++;
-                if ((i < xCount - 1) && (j < yCount - 1)) values[i + 1, j + 1]++;
+                _values[i, j] = -10;
+                if (i > 0) _values[i - 1, j]++;
+                if (j > 0) _values[i, j - 1]++;
+                if (i < _numberOfCellsInWidth - 1) _values[i + 1, j]++;
+                if (j < _numberOfCellsInHeight - 1) _values[i, j + 1]++;
+                if ((i > 0) && (j > 0)) _values[i - 1, j - 1]++;
+                if ((i > 0) && (j < _numberOfCellsInHeight - 1)) _values[i - 1, j + 1]++;
+                if ((i < _numberOfCellsInWidth - 1) && (j > 0)) _values[i + 1, j - 1]++;
+                if ((i < _numberOfCellsInWidth - 1) && (j < _numberOfCellsInHeight - 1)) _values[i + 1, j + 1]++;
 
                 k--;
             }
 
         }
 
-        for (int i = 0; i < xCount; i++)
+
+        for (int i = 0; i < _numberOfCellsInWidth; i++)
         {
-            for (int j = 0; j < yCount; j++)
+            for (int j = 0; j < _numberOfCellsInHeight; j++)
             {
-                openedÑellPrefab[i, j] = Instantiate(cellPrefab[0], Vector3.zero, Quaternion.identity, transform);
-                RectTransform rtOpenedCellPrefab = openedÑellPrefab[i, j].GetComponent<RectTransform>();
-                rtOpenedCellPrefab.anchorMin = new Vector2(i * 1.0f / xCount, j * 1.0f / yCount);
-                rtOpenedCellPrefab.anchorMax = new Vector2((i + 1) * 1.0f / xCount, (j + 1) * 1.0f / yCount);
+                _openedÑellPrefab[i, j] = Instantiate(_cellPrefabs[0], Vector3.zero, Quaternion.identity, transform);
+                RectTransform rtOpenedCellPrefab = _openedÑellPrefab[i, j].GetComponent<RectTransform>();
+                rtOpenedCellPrefab.anchorMin = new Vector2(i * 1.0f / _numberOfCellsInWidth, j * 1.0f / _numberOfCellsInHeight);
+                rtOpenedCellPrefab.anchorMax = new Vector2((i + 1) * 1.0f / _numberOfCellsInWidth, (j + 1) * 1.0f / _numberOfCellsInHeight);
                 rtOpenedCellPrefab.offsetMin = Vector2.zero;
                 rtOpenedCellPrefab.offsetMax = Vector2.zero;
                 Text cellValue = rtOpenedCellPrefab.GetChild(0).GetComponent<Text>();
-                Image proxiMines = ImageGiver(openedÑellPrefab[i, j], i, j);
+                Image proxiMines = ImageGiver(_openedÑellPrefab[i, j]);
 
-                closedCellPrefab[i, j] = Instantiate(cellPrefab[1], Vector3.zero, Quaternion.identity, transform);
-                RectTransform rtClosedCellPrefab = closedCellPrefab[i, j].GetComponent<RectTransform>();
-                rtClosedCellPrefab.anchorMin = new Vector2(i * 1.0f / xCount, j * 1.0f / yCount);
-                rtClosedCellPrefab.anchorMax = new Vector2((i + 1) * 1.0f / xCount, (j + 1) * 1.0f / yCount);
+                _closedCellPrefab[i, j] = Instantiate(_cellPrefabs[1], Vector3.zero, Quaternion.identity, transform);
+                RectTransform rtClosedCellPrefab = _closedCellPrefab[i, j].GetComponent<RectTransform>();
+                rtClosedCellPrefab.anchorMin = new Vector2(i * 1.0f / _numberOfCellsInWidth, j * 1.0f / _numberOfCellsInHeight);
+                rtClosedCellPrefab.anchorMax = new Vector2((i + 1) * 1.0f / _numberOfCellsInWidth, (j + 1) * 1.0f / _numberOfCellsInHeight);
                 rtClosedCellPrefab.offsetMin = Vector2.zero;
                 rtClosedCellPrefab.offsetMax = Vector2.zero;
-                ImageGiver(closedCellPrefab[i, j], i, j);
+                ImageGiver(_closedCellPrefab[i, j]);
 
-                if (values[i, j] == 0)
+
+                if (_values[i, j] == 0)
                 {
                     cellValue.text = "";
+                    _goodCellsCount++;
                 }
-
-                if (values[i, j] < 0)
+                else if (_values[i, j] < 0)
                 {
-                    proxiMines.sprite = proxiMinesSprite;
+                    proxiMines.sprite = _proxiMinesSprite;
 
                 }
-                if (values[i, j] > 0)
+                else if (_values[i, j] > 0)
                 {
-                    cellValue.text = values[i, j].ToString();
+                    cellValue.text = _values[i, j].ToString();
+                    _goodCellsCount++;
                 }
-                openedÑellPrefab[i, j].SetActive(false);
-                valuesSave[i, j] = values[i, j];
+                _openedÑellPrefab[i, j].SetActive(false);
+                _valuesSave[i, j] = _values[i, j];
 
             }
         }
@@ -115,37 +162,51 @@ public class Main : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKey("escape"))
+        if (Input.GetKey(KeyCode.Escape))
         {
-            Application.Quit();
+            EndGame(_resultOfTheGame = 0);
+        }
+
+        if (_timerEnable)
+        {
+            _delayEndGame -= Time.deltaTime;
+            if (_delayEndGame <= 0)
+            {
+                SceneManager.LoadScene("Menu");
+            }
         }
     }
 
+
     public void OnPointerDown(BaseEventData data)
     {
-        RectTransform rtGameBoard = gameBoard.GetComponent<RectTransform>();
+        RectTransform rtGameBoard = _gameBoard.GetComponent<RectTransform>();
 
         PointerEventData pntr = (PointerEventData)data;
-        int i = (int)(pntr.position.x / rtGameBoard.rect.width * xCount);
-        int j = (int)(pntr.position.y / rtGameBoard.rect.height * yCount);
-        if (Input.GetMouseButton(1) && !(openedÑellPrefab[i, j].activeSelf))
-        {
-            Image closedCellSign = ImageGiver(closedCellPrefab[i, j], i, j);
+        int i = (int)(pntr.position.x / rtGameBoard.rect.width * _numberOfCellsInWidth);
+        int j = (int)(pntr.position.y / rtGameBoard.rect.height * _numberOfCellsInHeight);
 
-            if (closedCellSign.sprite == closedCellSprite)
+
+        if (Input.GetMouseButton(1) && !(_openedÑellPrefab[i, j].activeSelf))
+        {
+            Image closedCellSign = ImageGiver(_closedCellPrefab[i, j]);
+
+            if (closedCellSign.sprite == _closedCellSprite)
             {
-                closedCellSign.sprite = closedCellSignSprite;
-                values[i, j] = 100;
-                NumberOfBombs(bombCount -= 1);
+                closedCellSign.sprite = _closedCellSignSprite;
+                _values[i, j] = 100;
+                NumberOfBombs(_bombCount -= 1);
             }
-            else if (closedCellSign.sprite == closedCellSignSprite)
+
+            else if (closedCellSign.sprite == _closedCellSignSprite)
             {
-                closedCellSign.sprite = closedCellSprite;
-                values[i, j] = valuesSave[i, j];
-                NumberOfBombs(bombCount += 1);
+                closedCellSign.sprite = _closedCellSprite;
+                _values[i, j] = _valuesSave[i, j];
+                NumberOfBombs(_bombCount += 1);
             }
         }
-        if (Input.GetMouseButtonDown(0) && values[i, j] < 50)
+
+        if (Input.GetMouseButtonDown(0) && _values[i, j] < 50)
         {
             OpenCell(i, j);
         }
@@ -155,57 +216,89 @@ public class Main : MonoBehaviour
     private void OpenCell(int i, int j)
     {
 
-        if (openedÑellPrefab[i, j].activeSelf)
+        if (_openedÑellPrefab[i, j].activeSelf)
         {
             return;
         }
-        openedÑellPrefab[i, j].SetActive(true);
-        if (ImageGiver(openedÑellPrefab[i, j], i, j).sprite == proxiMinesSprite)
+
+        _openedÑellPrefab[i, j].SetActive(true);
+
+        if (ImageGiver(_openedÑellPrefab[i, j]).sprite == _proxiMinesSprite)
         {
-            allAudio.PlayOneShot(mineExplosionClip, 0.1f);
-            bombCount -= 1;
-            NumberOfBombs(bombCount);
-            if (heathsCount > 0)
+            _allAudio.PlayOneShot(_mineExplosion, 0.1f);
+            _bombCount -= 1;
+
+            NumberOfBombs(_bombCount);
+
+            if (_healthCount <= _health.Count)
             {
-                heaths[heaths.Length - heathsCount].SetActive(false);
-                heathsCount--;
+                _health[_health.Count - _healthCount].SetActive(false);
+                _healthCount--;
+                Debug.Log(_healthCount);
             }
-            if (heathsCount == 0)
+            if (_healthCount == 0)
             {
-                Application.Quit();
+                EndGame(_resultOfTheGame = -1);
             }
-            Debug.Log(bombCount);
         }
-        if (values[i, j] > 50)
+
+        if (ImageGiver(_openedÑellPrefab[i, j]).sprite != _proxiMinesSprite)
+        {
+            _goodCellsCount--;
+            Debug.Log(_goodCellsCount);
+        }
+
+        if (_goodCellsCount == 0)
+        {
+            EndGame(_resultOfTheGame = 1);
+        }
+
+        if (_values[i, j] > 50)
         {
             return;
         }
-        closedCellPrefab[i, j].SetActive(false);
-        if (values[i, j] == 0)
+        else if (_values[i, j] == 0)
         {
-            if (i > 0 && values[i - 1, j] < 50) OpenCell(i - 1, j);
-            if (j > 0 && values[i, j - 1] < 50) OpenCell(i, j - 1);
-            if (i < xCount - 1 && values[i + 1, j] < 50) OpenCell(i + 1, j);
-            if (j < yCount - 1 && values[i, j + 1] < 50) OpenCell(i, j + 1);
-            if ((i > 0) && (j > 0) && (values[i - 1, j - 1] < 50)) OpenCell(i - 1, j - 1);
-            if ((i > 0) && (j < yCount - 1) && (values[i - 1, j + 1] < 50)) OpenCell(i - 1, j + 1);
-            if ((i < xCount - 1) && (j > 0) && (values[i + 1, j - 1] < 50)) OpenCell(i + 1, j - 1);
-            if ((i < xCount - 1) && (j < yCount - 1) && (values[i + 1, j + 1] < 50)) OpenCell(i + 1, j + 1);
+            if (i > 0 && _values[i - 1, j] < 50) OpenCell(i - 1, j);
+            if (j > 0 && _values[i, j - 1] < 50) OpenCell(i, j - 1);
+            if (i < _numberOfCellsInWidth - 1 && _values[i + 1, j] < 50) OpenCell(i + 1, j);
+            if (j < _numberOfCellsInHeight - 1 && _values[i, j + 1] < 50) OpenCell(i, j + 1);
+            if ((i > 0) && (j > 0) && (_values[i - 1, j - 1] < 50)) OpenCell(i - 1, j - 1);
+            if ((i > 0) && (j < _numberOfCellsInHeight - 1) && (_values[i - 1, j + 1] < 50)) OpenCell(i - 1, j + 1);
+            if ((i < _numberOfCellsInWidth - 1) && (j > 0) && (_values[i + 1, j - 1] < 50)) OpenCell(i + 1, j - 1);
+            if ((i < _numberOfCellsInWidth - 1) && (j < _numberOfCellsInHeight - 1) && (_values[i + 1, j + 1] < 50)) OpenCell(i + 1, j + 1);
         }
-
-
+        _closedCellPrefab[i, j].SetActive(false);
     }
 
 
     private void NumberOfBombs(int bombCountClosed)
     {
-        Text numberOfBombsText = numberOfBombs.GetComponent<Text>();
+        Text numberOfBombsText = _numberOfBombsText.GetComponent<Text>();
         numberOfBombsText.text = bombCountClosed.ToString();
     }
 
-    private Image ImageGiver(GameObject prefbs, int i, int j)
-    {
-        return (prefbs.GetComponent<Image>());
-    }
 
+    private Image ImageGiver(GameObject prefbs) => (prefbs.GetComponent<Image>());
+
+
+    private void EndGame(int resultGame)
+    {
+        if (resultGame == 1)
+        {
+            _timerEnable = true;
+            _endGamePanel.SetActive(true);
+            _endGameResultText.text = "You Win";
+        }
+        if (resultGame == 0)
+        {
+            SceneManager.LoadScene("Menu");
+        }
+        if (resultGame == -1)
+        {
+            _timerEnable = true;
+            _endGamePanel.SetActive(true);
+            _endGameResultText.text = "You Lose";
+        }
+    }
 }
